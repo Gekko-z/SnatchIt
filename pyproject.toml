@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "snatchit"
+version = "0.1.0"
+description = "跨平台视频下载客户端 - 支持抖音和 Twitter/X"
+requires-python = ">=3.10"
+dependencies = [
+    "PyQt6>=6.6.0",
+    "f2 @ git+https://github.com/Gekko-z/f2.git@fix/twitter-api-adaptation",
+    "websocket-client>=1.7.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "nuitka>=2.0",
+]
+
+[project.scripts]
+snatchit = "snatchit.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
