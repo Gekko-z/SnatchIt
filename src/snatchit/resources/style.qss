@@ -1,0 +1,104 @@
+/* SnatchIt 主样式表 */
+
+QMainWindow {
+    background-color: #1a1a2e;
+}
+
+QLabel {
+    color: #e0e0e0;
+    font-size: 13px;
+}
+
+QLineEdit, QTextEdit {
+    background-color: #16213e;
+    color: #e0e0e0;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+QLineEdit:focus, QTextEdit:focus {
+    border-color: #e94560;
+}
+
+QPushButton {
+    background-color: #0f3460;
+    color: #e0e0e0;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #e94560;
+}
+
+QPushButton:pressed {
+    background-color: #c73e54;
+}
+
+QPushButton:disabled {
+    background-color: #333355;
+    color: #666688;
+}
+
+QPushButton#primary {
+    background-color: #e94560;
+}
+
+QPushButton#primary:hover {
+    background-color: #ff6b81;
+}
+
+QComboBox {
+    background-color: #16213e;
+    color: #e0e0e0;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 24px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #16213e;
+    color: #e0e0e0;
+    selection-background-color: #0f3460;
+}
+
+QProgressBar {
+    background-color: #16213e;
+    border: 1px solid #0f3460;
+    border-radius: 4px;
+    text-align: center;
+    height: 22px;
+    color: #e0e0e0;
+}
+
+QProgressBar::chunk {
+    background-color: #e94560;
+    border-radius: 3px;
+}
+
+QGroupBox {
+    color: #e0e0e0;
+    border: 1px solid #0f3460;
+    border-radius: 6px;
+    margin-top: 10px;
+    padding-top: 12px;
+    font-weight: bold;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    left: 12px;
+    padding: 0 6px;
+}
