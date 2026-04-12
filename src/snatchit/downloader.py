@@ -2,12 +2,8 @@
 
 import asyncio
 import logging
-import sys
-from pathlib import Path
 
 from PyQt6.QtCore import QThread, pyqtSignal
-
-from snatchit.config import AppConfig
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +144,6 @@ class DownloadWorker(QThread):
 
         self.progress.emit(40, "正在获取视频信息...")
         handler = DouyinHandler(kwargs=kwargs)
-        handler.kwargs = kwargs
         await handler.handle_one_video()
 
         self.progress.emit(90, "正在下载视频...")

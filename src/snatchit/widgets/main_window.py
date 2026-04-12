@@ -10,8 +10,6 @@ from PyQt6.QtWidgets import (
     QFileDialog,
     QMessageBox,
 )
-from PyQt6.QtCore import Qt
-
 from snatchit.config import AppConfig
 from snatchit.widgets.link_input import LinkInputWidget
 from snatchit.widgets.cookie_panel import CookiePanel
