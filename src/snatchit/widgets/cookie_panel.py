@@ -9,8 +9,29 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QMessageBox,
 )
+from PyQt6.QtCore import QThread, pyqtSignal
 
 from snatchit.config import PLATFORM_CONFIG
+
+
+class CookieFetchWorker(QThread):
+    """Cookie 获取工作线程"""
+
+    finished = pyqtSignal(bool, str)  # success, cookie_or_error
+
+    def __init__(self, platform: str, parent=None):
+        super().__init__(parent)
+        self.platform = platform
+
+    def run(self):
+        from snatchit.cookie_fetcher import CookieFetcher
+
+        fetcher = CookieFetcher()
+        result = fetcher.fetch(self.platform)
+        if result.success:
+            self.finished.emit(True, result.cookie)
+        else:
+            self.finished.emit(False, result.error)
 
 
 class CookiePanel(QGroupBox):
@@ -21,6 +42,7 @@ class CookiePanel(QGroupBox):
         self.config = config
         self.current_platform = config.get("platform")
         self.cookie_edits = {}  # {platform: QLineEdit}
+        self.fetch_worker = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -63,9 +85,7 @@ class CookiePanel(QGroupBox):
             btn.setText("显示")
 
     def _fetch_cookie(self, platform: str):
-        """从浏览器自动获取 Cookie"""
-        from snatchit.cookie_fetcher import CookieFetcher
-
+        """从浏览器自动获取 Cookie（后台线程）"""
         QMessageBox.information(
             self,
             "提示",
@@ -73,17 +93,21 @@ class CookiePanel(QGroupBox):
             f"请确保浏览器中已登录该账号。",
         )
 
-        fetcher = CookieFetcher()
-        result = fetcher.fetch(platform)
+        self.fetch_worker = CookieFetchWorker(platform)
+        self.fetch_worker.finished.connect(self._on_cookie_fetched)
+        self.fetch_worker.start()
 
-        if result.success:
-            edit = self.cookie_edits[platform]
-            edit.setText(result.cookie)
-            # 临时显示 Cookie
-            edit.setEchoMode(QLineEdit.EchoMode.Normal)
+    def _on_cookie_fetched(self, success: bool, message: str):
+        """Cookie 获取完成回调"""
+        if success:
+            # message 是 cookie 字符串
+            edit = self.cookie_edits.get(self.fetch_worker.platform)
+            if edit:
+                edit.setText(message)
+                edit.setEchoMode(QLineEdit.EchoMode.Normal)
             QMessageBox.information(self, "成功", "Cookie 获取成功!")
         else:
-            QMessageBox.warning(self, "失败", result.error)
+            QMessageBox.warning(self, "失败", message)
 
     def get_cookie(self, platform: str) -> str:
         """获取指定平台的 Cookie"""

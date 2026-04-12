@@ -191,8 +191,9 @@ python -m snatchit.main
 - [x] 项目骨架和仓库创建
 - [x] Claude Code 配置和 Skills
 - [x] 基础文档（README、CLAUDE.md、DEVELOPMENT.md）
-- [ ] 核心 UI 组件
-- [ ] f2 封装层
-- [ ] Cookie 获取模块
-- [ ] 日志面板和配置持久化
+- [x] 核心 UI 组件
+- [x] f2 封装层
+- [x] Cookie 获取模块
+- [x] 日志面板和配置持久化
+- [x] Cookie 获取异步化（后台线程）
 - [ ] 测试和验证

@@ -143,7 +143,7 @@ class DownloadWorker(QThread):
         from f2.apps.douyin.handler import DouyinHandler
 
         self.log.emit("正在解析抖音链接...")
-        aweme_id = AwemeIdFetcher.get_aweme_id(self.url)
+        aweme_id = await AwemeIdFetcher.get_aweme_id(self.url)
         self.log.emit(f"视频 ID: {aweme_id}")
 
         self.progress.emit(40, "正在获取视频信息...")
