@@ -38,6 +38,18 @@ class CookieFetcher:
         self.debug_port = debug_port
         self._process = None
 
+    def _check_browser_running(self, browser: str) -> bool:
+        """检查浏览器是否已在运行"""
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["tasklist", "/FI", f"IMAGENAME eq {browser}.exe"],
+                capture_output=True, text=True, encoding="gbk"
+            )
+            return browser.lower() + ".exe" in result.stdout.lower()
+        except Exception:
+            return False
+
     def _find_browser(self, browser: str) -> Optional[str]:
         """查找浏览器可执行文件路径"""
         for path in BROWSER_PATHS.get(browser, []):
@@ -153,6 +165,14 @@ class CookieFetcher:
             return CookieResult(
                 success=False,
                 error=f"未找到 {browser} 浏览器，请确认安装路径",
+            )
+
+        # 检查浏览器是否已在运行
+        browser_name = "msedge" if browser == "edge" else "chrome"
+        if self._check_browser_running(browser_name):
+            return CookieResult(
+                success=False,
+                error=f"检测到 {browser} 浏览器正在运行，请先关闭所有浏览器窗口后重试",
             )
 
         try:

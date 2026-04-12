@@ -89,8 +89,11 @@ class CookiePanel(QGroupBox):
         QMessageBox.information(
             self,
             "提示",
-            f"即将启动浏览器获取 {PLATFORM_CONFIG[platform]['label']} 的 Cookie。\n"
-            f"请确保浏览器中已登录该账号。",
+            f"即将启动浏览器获取 {PLATFORM_CONFIG[platform]['label']} 的 Cookie。\n\n"
+            f"请确保：\n"
+            f"1. 浏览器中已登录该账号\n"
+            f"2. 所有 Edge/Chrome 浏览器窗口已关闭\n\n"
+            f"点击确定后将自动启动浏览器。",
         )
 
         self.fetch_worker = CookieFetchWorker(platform)
