@@ -2,10 +2,46 @@
 
 import asyncio
 import logging
+import re
+from urllib.parse import parse_qs, urlparse
 
 from PyQt6.QtCore import QThread, pyqtSignal
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_douyin_url(url: str) -> str:
+    """
+    标准化抖音链接，将用户页+modal_id 格式转换为标准 video 格式。
+
+    支持的输入格式:
+    - https://www.douyin.com/user/xxx?modal_id=7627395225548499377
+    - https://www.douyin.com/video/7627110051009898361
+    - https://v.douyin.com/xxx/ (短链接)
+
+    Returns:
+        标准化后的 URL
+    """
+    # 已经是标准 video/note 链接，直接返回
+    if re.search(r'(video|note)/', url):
+        return url
+
+    # 短链接，直接返回（f2 会通过重定向解析）
+    if 'v.douyin.com' in url:
+        return url
+
+    # 尝试从 user 页链接中提取 modal_id
+    try:
+        parsed = urlparse(url)
+        if 'douyin.com' in parsed.netloc:
+            params = parse_qs(parsed.query)
+            modal_id = params.get('modal_id', [None])[0]
+            if modal_id:
+                return f"https://www.douyin.com/video/{modal_id}"
+    except Exception:
+        pass
+
+    return url
 
 
 class QtLogHandler(logging.Handler):
@@ -75,6 +111,13 @@ class DownloadWorker(QThread):
         self.progress.emit(10, "正在初始化...")
         self.log.emit(f"平台: {self.platform}")
         self.log.emit(f"链接: {self.url}")
+
+        # 抖音链接标准化（user页+modal_id -> video/xxx）
+        if self.platform == "douyin":
+            original_url = self.url
+            self.url = normalize_douyin_url(self.url)
+            if self.url != original_url:
+                self.log.emit(f"链接已转换: {self.url}")
 
         # 构建 kwargs
         kwargs = self._build_kwargs()
