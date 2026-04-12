@@ -110,6 +110,46 @@ class CookieFetcher:
             logger.error(f"获取页面列表失败: {e}")
             return None
 
+    def _get_all_cookies(self, ws_url: str, domain_filter: str = "") -> Optional[str]:
+        """通过 CDP Network.getAllCookies 获取所有 Cookie（包括 HttpOnly）
+
+        Args:
+            ws_url: WebSocket 调试 URL
+            domain_filter: 域名过滤，只保留包含该域名的 Cookie
+        """
+        try:
+            import websocket
+            ws = websocket.create_connection(ws_url, timeout=10)
+            cmd = {
+                "id": 1,
+                "method": "Network.getAllCookies",
+            }
+            ws.send(json.dumps(cmd))
+            ws.settimeout(10)
+            result = ws.recv()
+            ws.close()
+
+            response = json.loads(result)
+            if "result" in response and "cookies" in response["result"]:
+                cookies = response["result"]["cookies"]
+                # 将 cookie 对象转换为 cookie 字符串，按域名过滤
+                parts = []
+                for c in cookies:
+                    cookie_domain = c.get("domain", "")
+                    if domain_filter and domain_filter not in cookie_domain:
+                        continue
+                    part = f"{c['name']}={c['value']}"
+                    parts.append(part)
+                return "; ".join(parts)
+            logger.error(f"意外的响应: {response}")
+            return None
+        except ImportError:
+            logger.error("websocket-client 库未安装，请运行: pip install websocket-client")
+            return None
+        except Exception as e:
+            logger.error(f"CDP Network.getAllCookies 失败: {e}")
+            return None
+
     def _execute_js(self, ws_url: str, expression: str) -> Optional[str]:
         """通过 WebSocket 执行 JavaScript"""
         try:
@@ -195,9 +235,13 @@ class CookieFetcher:
                     error="未找到目标页面，请确保浏览器已打开对应网站",
                 )
 
-            # 执行 JS 获取 Cookie
+            # 优先使用 Network.getAllCookies（可获取 HttpOnly Cookie）
             logger.info("正在获取 Cookie...")
-            cookie = self._execute_js(ws_url, "document.cookie")
+            cookie = self._get_all_cookies(ws_url)
+            # 如果 Network.getAllCookies 失败，回退到 document.cookie
+            if not cookie:
+                logger.warning("Network.getAllCookies 失败，回退到 document.cookie")
+                cookie = self._execute_js(ws_url, "document.cookie")
             if cookie:
                 logger.info(f"Cookie 获取成功，长度: {len(cookie)}")
                 return CookieResult(success=True, cookie=cookie)

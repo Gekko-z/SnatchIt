@@ -9,11 +9,35 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QFileDialog,
     QMessageBox,
+    QGroupBox,
+    QLineEdit,
 )
 from snatchit.config import AppConfig
 from snatchit.widgets.link_input import LinkInputWidget
 from snatchit.widgets.cookie_panel import CookiePanel
 from snatchit.widgets.log_panel import LogPanel
+
+
+class CmdPreviewWidget(QGroupBox):
+    """命令行预览组件"""
+
+    def __init__(self, parent=None):
+        super().__init__("命令行预览", parent)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(4)
+
+        self.cmd_text = QLineEdit()
+        self.cmd_text.setReadOnly(True)
+        self.cmd_text.setFont(self.cmd_text.font())
+        self.cmd_text.setPlaceholderText("输入链接和 Cookie 后预览命令")
+        layout.addWidget(self.cmd_text)
+
+    def update_command(self, cmd: str):
+        """更新命令预览"""
+        self.cmd_text.setText(cmd)
 
 
 class MainWindow(QMainWindow):
@@ -72,6 +96,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.link_input.progress_bar)
         layout.addWidget(self.link_input.status_label)
 
+        # 命令行预览区
+        self.cmd_preview = CmdPreviewWidget()
+        layout.addWidget(self.cmd_preview)
+
         # 日志面板
         self.log_panel = LogPanel()
         layout.addWidget(self.log_panel, 1)  # 日志占据剩余空间
@@ -89,11 +117,7 @@ class MainWindow(QMainWindow):
         saved_path = self.config.get("save_path")
         self.link_input.path_edit.setText(saved_path)
 
-        # 加载 Cookie
-        for platform in self.config.get_platforms():
-            cookie = self.config.get_cookie(platform)
-            if cookie:
-                self.cookie_panel.set_cookie(platform, cookie)
+        # 从 yaml 配置文件加载 Cookie（cookie_panel 内部已自行加载）
 
     def _connect_signals(self):
         """连接信号槽"""
@@ -119,7 +143,8 @@ class MainWindow(QMainWindow):
 
     def _start_download(self):
         """开始下载"""
-        from snatchit.downloader import DownloadWorker
+        from snatchit.downloader import DownloadWorker, normalize_douyin_url
+        from snatchit.config_manager import ensure_config_exists
 
         # 验证输入
         url = self.link_input.url_edit.text().strip()
@@ -141,10 +166,22 @@ class MainWindow(QMainWindow):
         # 确保路径存在
         Path(save_path).mkdir(parents=True, exist_ok=True)
 
+        # 确保 yaml 配置文件存在
+        config_path = ensure_config_exists(platform)
+
         # 保存配置
         self.config.set("platform", platform)
         self.config.set("save_path", save_path)
-        self.config.set_cookie(platform, cookie)
+
+        # 抖音链接标准化
+        display_url = url
+        if platform == "douyin":
+            display_url = normalize_douyin_url(url)
+
+        # 组装一次 f2 命令参数，同时用于预览和下载
+        f2_args = self._build_f2_cmd(platform, display_url, save_path, config_path)
+        cmd_str = "f2 " + " ".join(f2_args)
+        self.cmd_preview.update_command(cmd_str)
 
         # 禁用按钮
         self._set_buttons_enabled(False)
@@ -153,14 +190,21 @@ class MainWindow(QMainWindow):
         # 创建并启动下载线程
         self.worker = DownloadWorker(
             platform=platform,
-            url=url,
-            cookie=cookie,
+            url=display_url,
             save_path=save_path,
+            config_path=config_path,
         )
         self.worker.log.connect(self.log_panel.append_log)
         self.worker.progress.connect(self._update_progress)
         self.worker.finished.connect(self._download_finished)
         self.worker.start()
+
+    def _build_f2_cmd(
+        self, platform: str, url: str, save_path: str, config_path: str
+    ) -> list:
+        """组装完整的 f2 CLI 命令参数（不含 f2 可执行文件路径）"""
+        cmd = [platform, "-u", url, "-c", config_path, "-p", save_path]
+        return cmd
 
     def _cancel_download(self):
         """取消下载"""
@@ -206,11 +250,7 @@ class MainWindow(QMainWindow):
         self.config.set("platform", self.link_input.get_platform())
         self.config.set("save_path", self.link_input.path_edit.text())
 
-        # 保存所有平台的 Cookie
-        for platform in self.config.get_platforms():
-            cookie = self.cookie_panel.cookie_edits.get(platform)
-            if cookie:
-                self.config.set_cookie(platform, cookie.text())
+        # Cookie 已保存在 yaml 配置文件中，无需重复保存
 
         # 终止正在进行的下载
         if self.worker and self.worker.isRunning():
