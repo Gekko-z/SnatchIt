@@ -1,0 +1,17 @@
+douyin:
+  bark:
+    key: ''
+    url: ''
+  cookie: ''
+  folderize: true
+  headers:
+    Referer: https://www.douyin.com/
+    User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
+      like Gecko) Chrome/130.0.0.0 Safari/537.36
+  interval: all
+  languages: zh_CN
+  max_retries: 5
+  mode: one
+  naming: '{create}_{desc}'
+  path: ./Download
+  timeout: 10

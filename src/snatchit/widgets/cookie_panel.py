@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from snatchit.config import PLATFORM_CONFIG
-from snatchit.config_manager import read_cookie, ensure_config_exists, save_cookie_to_yaml, save_csrf_to_f2_conf
+from snatchit.config_manager import read_cookie, ensure_config_exists, save_cookie_to_yaml
 
 
 class CookiePanel(QGroupBox):
@@ -206,13 +206,12 @@ class CookiePanel(QGroupBox):
 
         success, msg = save_cookie_to_yaml(platform, cookie)
         if success:
-            # Twitter 自动从 Cookie 提取 ct0，同时保存到自定义配置和 f2 conf.yaml
+            # Twitter 自动从 Cookie 提取 ct0，同时保存到自定义配置
             if platform == "twitter":
                 token = self._extract_csrf_from_cookie(cookie)
                 if token:
                     yaml_path = ensure_config_exists(platform)
                     self._save_csrf_token(yaml_path, token)
-                    save_csrf_to_f2_conf(token)
                     csrf_edit = self.csrf_edits.get(platform)
                     if csrf_edit:
                         csrf_edit.setText(token)
@@ -228,8 +227,7 @@ class CookiePanel(QGroupBox):
             return
         token = csrf_edit.text().strip()
         yaml_ok = self._save_csrf_token(yaml_path, token)
-        f2_ok = save_csrf_to_f2_conf(token)
-        if yaml_ok and f2_ok:
+        if yaml_ok:
             QMessageBox.information(self, "成功", "X-Csrf-Token 已保存!")
         else:
             QMessageBox.warning(self, "失败", "保存 X-Csrf-Token 失败")

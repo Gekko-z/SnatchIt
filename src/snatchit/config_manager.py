@@ -4,32 +4,10 @@ from pathlib import Path
 
 import yaml
 
+from snatchit.utils import get_data_dir
 
-# 项目 configs 目录
-CONFIGS_DIR = Path(__file__).parent.parent.parent / "configs"
-
-
-def _find_f2_conf_yaml() -> Path:
-    """动态查找 f2 的 conf.yaml 路径"""
-    import importlib.util
-
-    from snatchit.utils import get_bundle_dir
-
-    # 打包模式：优先查找 exe 同级目录下的 f2/conf/conf.yaml
-    bundle_dir = get_bundle_dir()
-    bundled_conf = bundle_dir / "f2" / "conf" / "conf.yaml"
-    if bundled_conf.exists():
-        return bundled_conf
-
-    # 开发模式：通过 import f2 获取实际安装路径
-    spec = importlib.util.find_spec("f2")
-    if spec and spec.origin:
-        f2_dir = Path(spec.origin).parent
-        conf = f2_dir / "conf" / "conf.yaml"
-        if conf.exists():
-            return conf
-
-    return Path()  # 返回空路径，表示未找到
+# 项目 configs 目录（可写路径：打包后为 exe 同级目录）
+CONFIGS_DIR = get_data_dir() / "configs"
 
 
 PLATFORM_CONFIG_FILES = {
@@ -134,30 +112,4 @@ def read_cookie(platform: str) -> str:
         return config.get(platform, {}).get("cookie", "")
     except Exception:
         return ""
-
-
-def save_csrf_to_f2_conf(token: str):
-    """
-    将 X-Csrf-Token 写入 f2 的 conf.yaml。
-    由于 f2 的 merge_config 是浅层合并，自定义配置中的 headers
-    会被 kwargs["headers"] 整体覆盖，所以必须把 X-Csrf-Token
-    写到 f2 全局配置（conf.yaml）中才能生效。
-    """
-    conf_path = _find_f2_conf_yaml()
-    if not conf_path or not conf_path.exists():
-        return False
-
-    try:
-        with open(conf_path, "r", encoding="utf-8") as f:
-            conf = yaml.safe_load(f) or {}
-
-        # 确保 twitter.headers 存在
-        conf.setdefault("f2", {}).setdefault("twitter", {}).setdefault("headers", {})
-        conf["f2"]["twitter"]["headers"]["X-Csrf-Token"] = token
-
-        with open(conf_path, "w", encoding="utf-8") as f:
-            yaml.dump(conf, f, default_flow_style=False, allow_unicode=True)
-        return True
-    except Exception:
-        return False
 

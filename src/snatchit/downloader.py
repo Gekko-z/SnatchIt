@@ -108,6 +108,12 @@ def _merge_f2_config(platform: str, url: str, save_path: str, config_path: str) 
             kwargs["headers"][k] = v
     kwargs["headers"]["Cookie"] = kwargs["cookie"]
 
+    # 将 X-Csrf-Token 传入 kwargs 顶层，TwitterCrawler 会优先读取
+    # 这样无需读写 f2 的 conf.yaml（打包后该文件位于 _internal/ 只读目录）
+    csrf_token = custom_headers.get("X-Csrf-Token", "")
+    if csrf_token:
+        kwargs["X-Csrf-Token"] = csrf_token
+
     return kwargs
 
 
@@ -134,6 +140,9 @@ class DownloadWorker(QThread):
 
     def run(self):
         """在线程中运行下载任务"""
+        # 切换到数据目录（可写），避免 f2 创建 .db 文件时路径不可写而失败
+        os.chdir(str(Path(sys.executable).parent if getattr(sys, "frozen", False) else Path(__file__).parent.parent.parent))
+
         logger.info("=" * 60)
         logger.info("开始下载任务")
         logger.info(f"平台: {self.platform}")
