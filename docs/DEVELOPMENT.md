@@ -232,3 +232,4 @@ python -m snatchit.main
 - **单实例锁**：使用 `QLocalServer` + `QLocalSocket`（PyQt6.QtNetwork）实现，第二个实例静默退出
 - **f2 重新安装**：修改 f2 源码后重新 `pip install` 使 `logger.debug` 生效
 - **PyInstaller spec 更新**：添加图标到 datas 和 Windows EXE icon 配置
+- **f2 分支同步**：`main` 分支的 Twitter API 修复提交已合并回 `fix/twitter-api-adaptation` 分支，两个分支现在指向同一提交 `b9a3154`
