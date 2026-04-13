@@ -172,17 +172,19 @@ python -m snatchit.main
 
 ## 已知问题
 
-1. **Twitter Cookie 依赖**: Twitter 下载需要有效的登录 Cookie，且需要 `X-Csrf-Token`
+1. **Twitter Cookie 依赖**: Twitter 下载需要有效的登录 Cookie，且需要 `X-Csrf-Token`（从浏览器开发者工具获取 ct0 值）
 2. **代理问题**: 部分地区下载 Twitter 视频需要代理
 3. **Cookie 过期**: 自动获取的 Cookie 会过期，需定期重新获取
+4. **Bark 通知**: Bark 通知 URL 未配置时会返回 405，但不影响下载功能
 
 ## TODO
 
 - [ ] 支持批量下载（链接列表）
 - [ ] 下载历史记录
 - [ ] 代理设置 UI
-- [ ] macOS/Linux 兼容性
-- [ ] Nuitka 打包为独立 exe
+- [ ] macOS `.app` bundle 打包（当前为非 `.app` 可执行文件 + `_internal/`）
+- [ ] Windows 平台打包和运行验证
+- [ ] Linux 平台打包和运行验证
 - [ ] 自动更新检测
 - [ ] 更多平台支持（Bilibili、Instagram 等）
 
@@ -196,4 +198,23 @@ python -m snatchit.main
 - [x] Cookie 获取模块
 - [x] 日志面板和配置持久化
 - [x] Cookie 获取异步化（后台线程）
-- [ ] 测试和验证
+- [x] 抖音链接自动标准化
+- [x] PyInstaller 全量打包方案（替代 Nuitka）
+- [x] 打包后数据库和配置文件写入权限修复
+- [x] X-Csrf-Token 通过 kwargs 传递（无需写 f2 conf.yaml）
+- [ ] 测试和验证（抖音已验证，Twitter 待验证）
+
+## 开发日志
+
+### 2026-04-13
+
+- **PyInstaller 打包方案**：从 Nuitka 切换到 PyInstaller，解决 websockets 12.x lazy import 导致子包遗漏的问题
+- **f2 版本号修复**：`__version__` 改为 `0.0.1.7+gekko.1`（PEP 440 格式），推送到 fork 远程分支
+- **抖音 caption 字段**：`f2/apps/douyin/db.py` 添加 `caption` 和 `caption_raw` 字段
+- **打包后路径适配**：
+  - 新增 `get_data_dir()` 返回可写路径（exe 同级目录）
+  - `CONFIGS_DIR` 改用 `get_data_dir()`
+  - `os.chdir` 确保 f2 创建的 `.db` 文件在可写目录
+- **X-Csrf-Token 修复**：通过 `kwargs["X-Csrf-Token"]` 传递，利用 `TwitterCrawler.__init__` 已有的 kwargs 优先读取逻辑，不再需要写 f2 的 `conf.yaml`（打包后该文件位于 `_internal/` 只读目录）
+- **清理无用代码**：移除 `save_csrf_to_f2_conf()` 和 `_find_f2_conf_yaml()` 函数
+- **文档更新**：创建 `docs/BUILD.md`，更新 `docs/DEVELOPMENT.md`、`docs/PACKING_STATUS.md`、`docs/F2_LOCAL_FIXES.md`
