@@ -7,6 +7,8 @@ from pathlib import Path
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
+from PyQt6.QtNetwork import QLocalServer, QLocalSocket
+from PyQt6.QtGui import QIcon
 
 from snatchit.widgets.main_window import MainWindow
 
@@ -88,8 +90,26 @@ def load_stylesheet(app: QApplication):
             app.setStyleSheet(f.read())
 
 
+APP_NAME = "SnatchIt"
+LOCAL_SOCKET_NAME = "snatchit-single-instance-lock"
+
+
+def is_already_running():
+    """检查是否已有实例在运行"""
+    socket = QLocalSocket()
+    socket.connectToServer(LOCAL_SOCKET_NAME)
+    if socket.waitForConnected(500):
+        socket.disconnectFromServer()
+        return True
+    return False
+
+
 def main():
     """应用入口"""
+    # 单实例检查：已有实例则静默退出
+    if is_already_running():
+        sys.exit(0)
+
     # 仅在非打包模式下进行环境检查（打包后 f2 已内置）
     if not getattr(sys, "frozen", False) and not getattr(sys, "_MEIPASS", None):
         check_environment()
@@ -97,11 +117,25 @@ def main():
     setup_logging()
 
     app = QApplication(sys.argv)
-    app.setApplicationName("SnatchIt")
+
+    # 创建单实例锁服务器（保持引用防止被 GC）
+    app._instance_lock = QLocalServer()
+    app._instance_lock.listen(LOCAL_SOCKET_NAME)
+
+    app.setApplicationName(APP_NAME)
     app.setStyle("Fusion")  # 使用 Fusion 风格，跨平台一致
 
     # 加载样式表
     load_stylesheet(app)
+
+    # 设置应用图标
+    from snatchit.utils import get_bundle_dir
+    bundle_dir = get_bundle_dir()
+    icon_path = bundle_dir / "snatchit" / "resources" / "snatchit.ico"
+    if not icon_path.exists():
+        icon_path = bundle_dir / "src" / "snatchit" / "resources" / "snatchit.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
     # 创建并显示主窗口
     window = MainWindow()

@@ -160,6 +160,11 @@ configs_dir = Path("configs")
 if configs_dir.exists():
     datas.append((str(configs_dir), "configs"))
 
+# SnatchIt icon
+icon_path = Path("src/snatchit/resources/snatchit.ico")
+if icon_path.exists():
+    datas.append((str(icon_path), "snatchit/resources"))
+
 
 # --- 平台判断 ---
 block_cipher = None
@@ -227,6 +232,7 @@ elif sys.platform == "win32":
         disable_windowed_traceback=False,
         argv_emulation=False,
         target_arch=None,
+        icon=str(icon_path) if icon_path.exists() else None,
     )
     coll = COLLECT(
         exe,
