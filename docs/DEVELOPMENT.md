@@ -218,3 +218,17 @@ python -m snatchit.main
 - **X-Csrf-Token 修复**：通过 `kwargs["X-Csrf-Token"]` 传递，利用 `TwitterCrawler.__init__` 已有的 kwargs 优先读取逻辑，不再需要写 f2 的 `conf.yaml`（打包后该文件位于 `_internal/` 只读目录）
 - **清理无用代码**：移除 `save_csrf_to_f2_conf()` 和 `_find_f2_conf_yaml()` 函数
 - **文档更新**：创建 `docs/BUILD.md`，更新 `docs/DEVELOPMENT.md`、`docs/PACKING_STATUS.md`、`docs/F2_LOCAL_FIXES.md`
+
+### 2026-04-13 (第二轮)
+
+- **Twitter API 自适应解析**：`f2/apps/twitter/filter.py` 重构 `TweetDetailFilter`，从硬编码 jsonpath 改为动态查找：
+  - `_find_instruction_index()`：依次尝试 `[0]` → `[1]` → 遍历所有 instructions 查找包含 `entries` 的项
+  - `_find_value(legacy_field)`：依次尝试 `result.tweet.legacy.{field}` → `result.legacy.{field}` → 递归深搜 `_deep_search()`
+  - `_find_user_value(target_key)`：4 种用户字段路径组合 + 深搜兜底
+  - 解决 Twitter API 结构频繁变化导致的字段全为 None 的问题
+- **API 响应日志级别**：Twitter 和 Douyin handler 的原始 API 响应打印从 `logger.info` 改为 `logger.debug`，避免污染日常日志
+- **应用图标**：生成 S 形紫色/蓝色渐变图标（ICO 含 16/32/48/64/128/256 多尺寸）
+- **窗口标题**：移除"跨平台视频下载"后缀，仅保留 "SnatchIt"
+- **单实例锁**：使用 `QLocalServer` + `QLocalSocket`（PyQt6.QtNetwork）实现，第二个实例静默退出
+- **f2 重新安装**：修改 f2 源码后重新 `pip install` 使 `logger.debug` 生效
+- **PyInstaller spec 更新**：添加图标到 datas 和 Windows EXE icon 配置
