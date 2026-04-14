@@ -1,7 +1,5 @@
 """Cookie 管理面板 - 基于 yaml 配置文件"""
 
-from pathlib import Path
-
 from PyQt6.QtWidgets import (
     QGroupBox,
     QVBoxLayout,
@@ -9,7 +7,7 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QPushButton,
-    QFileDialog,
+    QWidget,
     QMessageBox,
 )
 from PyQt6.QtCore import Qt
@@ -28,8 +26,11 @@ class CookiePanel(QGroupBox):
         self.cookie_edits = {}       # {platform: QLineEdit}
         self.csrf_edits = {}         # {platform: QLineEdit} 仅 Twitter 需要
         self.path_labels = {}        # {platform: QLabel} 显示 yaml 路径
+        self.row_widgets = {}        # {platform: QVBoxLayout} 每行的容器
         self._setup_ui()
         self._load_cookies_from_yaml()
+        # 初始化时只显示当前平台
+        self._update_visibility()
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -37,8 +38,12 @@ class CookiePanel(QGroupBox):
 
         # 为每个平台创建 Cookie 输入行
         for key, info in PLATFORM_CONFIG.items():
-            row = QVBoxLayout()
+            # 使用 QWidget 容器以便控制 setVisible
+            row_widget = QWidget()
+            row = QVBoxLayout(row_widget)
+            row.setContentsMargins(0, 0, 0, 0)
             row.setSpacing(4)
+            self.row_widgets[key] = row_widget
 
             # 第一行：平台标签 + yaml 路径
             info_layout = QHBoxLayout()
@@ -75,15 +80,9 @@ class CookiePanel(QGroupBox):
             save_btn.setMaximumWidth(60)
             save_btn.clicked.connect(lambda checked, k=key: self._save_cookie(k))
 
-            # 手动指定 yaml 文件
-            yaml_btn = QPushButton("指定配置文件")
-            yaml_btn.setMaximumWidth(100)
-            yaml_btn.clicked.connect(lambda checked, k=key: self._browse_yaml(k))
-
             input_layout.addWidget(edit, 1)
             input_layout.addWidget(toggle_btn)
             input_layout.addWidget(save_btn)
-            input_layout.addWidget(yaml_btn)
             row.addLayout(input_layout)
 
             # Twitter 额外需要 X-Csrf-Token
@@ -111,7 +110,7 @@ class CookiePanel(QGroupBox):
                 csrf_layout.addWidget(csrf_save)
                 row.addLayout(csrf_layout)
 
-            layout.addLayout(row)
+            layout.addWidget(row_widget)
 
     def _load_cookies_from_yaml(self):
         """应用启动时从 yaml 配置文件加载 Cookie"""
@@ -232,42 +231,6 @@ class CookiePanel(QGroupBox):
         else:
             QMessageBox.warning(self, "失败", "保存 X-Csrf-Token 失败")
 
-    def _browse_yaml(self, platform: str):
-        """手动指定 yaml 配置文件"""
-        current = self.path_labels.get(platform, None)
-        start_dir = str(Path(current.text()).parent) if current and current.text() else str(Path.home())
-        yaml_path, _ = QFileDialog.getOpenFileName(
-            self,
-            f"选择 {PLATFORM_CONFIG[platform]['label']} 配置文件",
-            start_dir,
-            "YAML 文件 (*.yaml *.yml)",
-        )
-        if yaml_path:
-            path_label = self.path_labels.get(platform)
-            if path_label:
-                path_label.setText(yaml_path)
-            try:
-                import yaml
-                with open(yaml_path, "r", encoding="utf-8") as f:
-                    config = yaml.safe_load(f) or {}
-                cookie = config.get(platform, {}).get("cookie", "")
-            except Exception as e:
-                cookie = ""
-                QMessageBox.warning(self, "读取失败", f"无法读取配置文件: {e}")
-
-            edit = self.cookie_edits.get(platform)
-            if edit and cookie:
-                edit.setText(cookie)
-                self._auto_set_csrf_from_cookie(cookie)
-
-            # 加载 X-Csrf-Token
-            if platform == "twitter":
-                csrf_edit = self.csrf_edits.get(platform)
-                if csrf_edit and not csrf_edit.text():
-                    csrf = self._read_csrf_token(yaml_path)
-                    if csrf:
-                        csrf_edit.setText(csrf)
-
     def get_cookie(self, platform: str) -> str:
         """获取指定平台的 Cookie（直接从 yaml 文件读取）"""
         return read_cookie(platform).strip()
@@ -278,6 +241,12 @@ class CookiePanel(QGroupBox):
         if edit and cookie:
             edit.setText(cookie)
 
+    def _update_visibility(self):
+        """只显示当前平台的行"""
+        for key, widget in self.row_widgets.items():
+            widget.setVisible(key == self.current_platform)
+
     def set_current_platform(self, platform: str):
-        """设置当前显示的平台（高亮对应行）"""
+        """设置当前显示的平台"""
         self.current_platform = platform
+        self._update_visibility()

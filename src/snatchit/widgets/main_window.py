@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
 
     def _setup_ui(self):
         """设置 UI"""
-        self.setWindowTitle("SnatchIt - 跨平台视频下载")
+        self.setWindowTitle("SnatchIt")
         self.setMinimumSize(600, 550)
 
         # 中心部件
@@ -160,13 +160,13 @@ class MainWindow(QMainWindow):
 
         save_path = self.link_input.path_edit.text().strip()
         if not save_path:
-            QMessageBox.warning(self, "提示", "请选择保存路径")
+            QMessageBox.warning(self, "提示", "请选择下载目录")
             return
 
         # 确保路径存在
         Path(save_path).mkdir(parents=True, exist_ok=True)
 
-        # 确保 yaml 配置文件存在
+        # 确保 yaml 配置文件存在（如果 Cookie 读取时已创建则此步为无操作）
         config_path = ensure_config_exists(platform)
 
         # 保存配置

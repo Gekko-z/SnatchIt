@@ -102,3 +102,11 @@ QGroupBox::title {
     left: 12px;
     padding: 0 6px;
 }
+
+QDialog, QMessageBox {
+    background-color: #1a1a2e;
+}
+
+QDialog QLabel, QMessageBox QLabel {
+    color: #e0e0e0;
+}

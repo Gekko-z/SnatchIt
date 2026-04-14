@@ -49,7 +49,7 @@ class LinkInputWidget(QWidget):
         layout.addLayout(link_layout)
 
         # 保存路径
-        self.path_label = QLabel("路径:")
+        self.path_label = QLabel("下载目录:")
         self.path_edit = QLineEdit()
         self.path_edit.setPlaceholderText("选择保存路径")
         self.path_btn = QPushButton("浏览...")

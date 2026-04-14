@@ -42,7 +42,7 @@ python build.py
 脚本会自动：
 1. 检查 Python 版本（>= 3.10）
 2. 检查 PyInstaller 和 f2 是否已安装
-3. 验证 f2 版本号（必须为 `0.0.1.7+gekko*` 自定义版本）
+3. 验证 f2 版本号（必须为 `0.0.1.7.gekko*` 自定义版本）
 4. 生成默认 configs（douyin.yaml、twitter.yaml）
 5. 调用 PyInstaller 打包
 6. 输出到 `dist/SnatchIt/`
@@ -83,9 +83,9 @@ dist/SnatchIt/SnatchIt
 
 ## f2 版本验证
 
-打包时会验证 f2 版本号，确保使用的是自定义修复版本（`0.0.1.7+gekko.*`）。如果版本不匹配会打印警告但不会阻止打包。
+打包时会验证 f2 版本号，确保使用的是自定义修复版本（`0.0.1.7.gekko.*`）。如果版本不匹配会打印警告但不会阻止打包。
 
-f2 fork 地址：https://github.com/Gekko-z/f2@main
+f2 fork 地址：https://github.com/Gekko-z/f2@fix/twitter-api-adaptation
 
 修复内容：
 - Twitter API `instructions[0] → instructions[1]` 适配
