@@ -15,7 +15,7 @@ from snatchit.widgets.main_window import MainWindow
 
 # 环境检查常量
 REQUIRED_PYTHON_VERSION = (3, 11)
-F2_REPO_URL = "git+https://github.com/Gekko-z/f2@fix/twitter-api-adaptation"
+F2_REPO_URL = "git+https://github.com/Gekko-z/f2@main"
 F2_REQUIRED_VERSION_PREFIX = "0.0.1.7+gekko"  # 自定义版本号前缀，用于验证是否为修复版
 
 

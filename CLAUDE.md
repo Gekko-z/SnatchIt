@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **GUI 框架**: PyQt6
 - **异步支持**: asyncio + QThread
-- **视频下载**: f2 (fork 版本: https://github.com/Gekko-z/f2, 分支: fix/twitter-api-adaptation)
+- **视频下载**: f2 (fork 版本: https://github.com/Gekko-z/f2, 分支: main)
 - **Cookie 获取**: 浏览器远程调试 (WebSocket, Chrome DevTools Protocol)
 - **打包工具**: Nuitka (后续)
 - **Python**: >= 3.10
@@ -62,7 +62,7 @@ python build.py
 
 f2 是本项目的核心下载引擎。使用 fork 版本（含 Twitter API 修复）：
 - **仓库**: https://github.com/Gekko-z/f2
-- **分支**: fix/twitter-api-adaptation
+- **分支**: main
 
 ### 已知 f2 修复
 

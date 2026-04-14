@@ -5,7 +5,7 @@
 ## 仓库信息
 
 - **远程仓库**: `https://github.com/Gekko-z/f2`
-- **分支**: `fix/twitter-api-adaptation`
+- **分支**: `main`
 - **版本号**: `0.0.1.7+gekko.1`（PEP 440 合规）
 
 ## 修改内容
@@ -34,7 +34,7 @@
 # 克隆 fork 仓库
 git clone https://github.com/Gekko-z/f2.git
 cd f2
-git checkout fix/twitter-api-adaptation
+git checkout main
 
 # 安装
 pip install .
@@ -44,7 +44,7 @@ pip install .
 
 SnatchIt 通过 `pyproject.toml` 依赖 f2 fork：
 ```toml
-"f2 @ git+https://github.com/Gekko-z/f2@fix/twitter-api-adaptation"
+"f2 @ git+https://github.com/Gekko-z/f2@main"
 ```
 
 打包时 PyInstaller 自动从 site-packages 中收集 f2 及其依赖，打包为独立产物。
