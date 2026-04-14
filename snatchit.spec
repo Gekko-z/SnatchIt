@@ -165,6 +165,10 @@ icon_path = Path("src/snatchit/resources/snatchit.ico")
 if icon_path.exists():
     datas.append((str(icon_path), "snatchit/resources"))
 
+# macOS .app icon
+icns_path = Path("src/snatchit/resources/snatchit.icns")
+macos_icon = str(icns_path) if icns_path.exists() else None
+
 
 # --- 平台判断 ---
 block_cipher = None
@@ -190,32 +194,45 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
-# --- 平台自适应 ---
+exe = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name="SnatchIt",
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=False,  # .app 不显示终端窗口
+    disable_windowed_traceback=False,
+    target_arch=None,
+    codesign_entitlements=None,
+    entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name="SnatchIt",
+)
+
 if sys.platform == "darwin":
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        exclude_binaries=True,
-        name="SnatchIt",
-        debug=False,
-        bootloader_ignore_signals=False,
-        strip=False,
-        upx=True,
-        console=True,  # macOS 先使用 console 模式方便调试
-        disable_windowed_traceback=False,
-        target_arch=None,
-        codesign_entitlements=None,
-        entitlements_file=None,
-    )
-    coll = COLLECT(
-        exe,
-        a.binaries,
-        a.datas,
-        strip=False,
-        upx=True,
-        upx_exclude=[],
-        name="SnatchIt",
+    app = BUNDLE(
+        coll,
+        name="SnatchIt.app",
+        icon=macos_icon,
+        bundle_identifier="com.gekko.snatchit",
+        version="0.1.0",
+        info_plist={
+            "CFBundleName": "SnatchIt",
+            "CFBundleDisplayName": "SnatchIt",
+            "NSHighResolutionCapable": "true",
+        },
     )
 elif sys.platform == "win32":
     exe = EXE(

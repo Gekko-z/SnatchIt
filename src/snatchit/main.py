@@ -94,20 +94,26 @@ APP_NAME = "SnatchIt"
 LOCAL_SOCKET_NAME = "snatchit-single-instance-lock"
 
 
-def is_already_running():
-    """检查是否已有实例在运行"""
+def send_activate_message():
+    """通知已有实例激活窗口"""
     socket = QLocalSocket()
     socket.connectToServer(LOCAL_SOCKET_NAME)
     if socket.waitForConnected(500):
+        socket.write(b"activate")
+        socket.waitForBytesWritten(1000)
         socket.disconnectFromServer()
+        # 等待断开后再退出，避免消息未发送完
+        import time
+        time.sleep(0.1)
         return True
     return False
 
 
 def main():
     """应用入口"""
-    # 单实例检查：已有实例则静默退出
-    if is_already_running():
+    # 单实例检查：已有实例则发送激活消息后退出
+    if send_activate_message():
+        print("[单实例] 已有实例运行中，已发送激活信号")
         sys.exit(0)
 
     # 仅在非打包模式下进行环境检查（打包后 f2 已内置）
@@ -117,10 +123,6 @@ def main():
     setup_logging()
 
     app = QApplication(sys.argv)
-
-    # 创建单实例锁服务器（保持引用防止被 GC）
-    app._instance_lock = QLocalServer()
-    app._instance_lock.listen(LOCAL_SOCKET_NAME)
 
     app.setApplicationName(APP_NAME)
     app.setStyle("Fusion")  # 使用 Fusion 风格，跨平台一致
@@ -140,6 +142,33 @@ def main():
     # 创建并显示主窗口
     window = MainWindow()
     window.show()
+
+    # 创建单实例锁服务器，接收新实例的激活信号
+    app._instance_lock = QLocalServer()
+    app._instance_lock.removeServer(LOCAL_SOCKET_NAME)  # 清理可能的残留锁文件
+    if app._instance_lock.listen(LOCAL_SOCKET_NAME):
+        def _on_new_connection():
+            """新实例连接时激活当前窗口"""
+            server_socket = app._instance_lock.nextPendingConnection()
+            if server_socket:
+                def _on_ready_read():
+                    data = server_socket.readAll()
+                    if b"activate" in bytes(data):
+                        print("[单实例] 收到激活信号，激活窗口")
+                        window.raise_()
+                        window.activateWindow()
+                        window.show()
+                        # macOS 特殊处理：确保窗口提到前台
+                        import sys as _sys
+                        if _sys.platform == "darwin":
+                            from PyQt6.QtWidgets import QApplication
+                            QApplication.alert(window, 0)
+                    server_socket.deleteLater()
+                server_socket.readyRead.connect(_on_ready_read)
+
+        app._instance_lock.newConnection.connect(_on_new_connection)
+    else:
+        print(f"[单实例] 警告: 无法创建本地锁 {LOCAL_SOCKET_NAME}")
 
     sys.exit(app.exec())
 
