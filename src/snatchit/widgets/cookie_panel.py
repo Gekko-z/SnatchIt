@@ -24,7 +24,6 @@ class CookiePanel(QGroupBox):
         self.config = config
         self.current_platform = config.get("platform")
         self.cookie_edits = {}       # {platform: QLineEdit}
-        self.csrf_edits = {}         # {platform: QLineEdit} 仅 Twitter 需要
         self.path_labels = {}        # {platform: QLabel} 显示 yaml 路径
         self.row_widgets = {}        # {platform: QVBoxLayout} 每行的容器
         self._setup_ui()
@@ -85,31 +84,6 @@ class CookiePanel(QGroupBox):
             input_layout.addWidget(save_btn)
             row.addLayout(input_layout)
 
-            # Twitter 额外需要 X-Csrf-Token
-            if key == "twitter":
-                csrf_layout = QHBoxLayout()
-                csrf_label = QLabel("X-Csrf-Token:")
-                csrf_edit = QLineEdit()
-                csrf_edit.setPlaceholderText("从浏览器开发者工具获取 (ct0 值)")
-                csrf_edit.setEchoMode(QLineEdit.EchoMode.Password)
-                self.csrf_edits[key] = csrf_edit
-
-                csrf_toggle = QPushButton("显示")
-                csrf_toggle.setMaximumWidth(60)
-                csrf_toggle.clicked.connect(
-                    lambda checked, e=csrf_edit, b=csrf_toggle: self._toggle_visibility(e, b)
-                )
-
-                csrf_save = QPushButton("保存")
-                csrf_save.setMaximumWidth(60)
-                csrf_save.clicked.connect(lambda checked: self._save_csrf("twitter"))
-
-                csrf_layout.addWidget(csrf_label)
-                csrf_layout.addWidget(csrf_edit, 1)
-                csrf_layout.addWidget(csrf_toggle)
-                csrf_layout.addWidget(csrf_save)
-                row.addLayout(csrf_layout)
-
             layout.addWidget(row_widget)
 
     def _load_cookies_from_yaml(self):
@@ -123,32 +97,11 @@ class CookiePanel(QGroupBox):
             edit = self.cookie_edits.get(key)
             if edit and cookie:
                 edit.setText(cookie)
-                self._auto_set_csrf_from_cookie(cookie)
-
-            # 加载 X-Csrf-Token（如果 Cookie 中没有 ct0，再从 headers 读取）
-            if key == "twitter":
-                csrf_edit = self.csrf_edits.get(key)
-                if csrf_edit and not csrf_edit.text():
-                    csrf = self._read_csrf_token(yaml_path)
-                    if csrf:
-                        csrf_edit.setText(csrf)
-
-    def _read_csrf_token(self, yaml_path: str) -> str:
-        """从 yaml 配置中读取 x-csrf-token"""
-        try:
-            import yaml
-            with open(yaml_path, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f) or {}
-            twitter_config = config.get("twitter", {})
-            # 优先从 headers 中读取
-            headers = twitter_config.get("headers", {})
-            token = headers.get("X-Csrf-Token", "")
-            if not token:
-                # 尝试从 x-csrf-token 读取
-                token = twitter_config.get("x-csrf-token", "")
-            return token
-        except Exception:
-            return ""
+                # Twitter 自动从 Cookie 提取 ct0 并保存到 yaml headers
+                if key == "twitter":
+                    token = self._extract_csrf_from_cookie(cookie)
+                    if token:
+                        self._save_csrf_token(yaml_path, token)
 
     def _save_csrf_token(self, yaml_path: str, token: str):
         """保存 X-Csrf-Token 到 yaml 配置的 headers 中"""
@@ -175,15 +128,6 @@ class CookiePanel(QGroupBox):
                 return part.split("=", 1)[1].strip()
         return ""
 
-    def _auto_set_csrf_from_cookie(self, cookie: str):
-        """自动从 Cookie 字符串提取 ct0 并填入 X-Csrf-Token 输入框"""
-        csrf_edit = self.csrf_edits.get("twitter")
-        if not csrf_edit:
-            return
-        token = self._extract_csrf_from_cookie(cookie)
-        if token:
-            csrf_edit.setText(token)
-
     def _toggle_visibility(self, edit: QLineEdit, btn: QPushButton):
         """切换 Cookie 显示/隐藏"""
         if edit.echoMode() == QLineEdit.EchoMode.Password:
@@ -205,31 +149,15 @@ class CookiePanel(QGroupBox):
 
         success, msg = save_cookie_to_yaml(platform, cookie)
         if success:
-            # Twitter 自动从 Cookie 提取 ct0，同时保存到自定义配置
+            # Twitter 自动从 Cookie 提取 ct0，同时保存到 yaml headers
             if platform == "twitter":
                 token = self._extract_csrf_from_cookie(cookie)
                 if token:
                     yaml_path = ensure_config_exists(platform)
                     self._save_csrf_token(yaml_path, token)
-                    csrf_edit = self.csrf_edits.get(platform)
-                    if csrf_edit:
-                        csrf_edit.setText(token)
             QMessageBox.information(self, "成功", "Cookie 已保存到配置文件!")
         else:
             QMessageBox.warning(self, "失败", msg)
-
-    def _save_csrf(self, platform: str):
-        """保存 X-Csrf-Token"""
-        csrf_edit = self.csrf_edits.get(platform)
-        yaml_path = ensure_config_exists(platform)
-        if not csrf_edit or not yaml_path:
-            return
-        token = csrf_edit.text().strip()
-        yaml_ok = self._save_csrf_token(yaml_path, token)
-        if yaml_ok:
-            QMessageBox.information(self, "成功", "X-Csrf-Token 已保存!")
-        else:
-            QMessageBox.warning(self, "失败", "保存 X-Csrf-Token 失败")
 
     def get_cookie(self, platform: str) -> str:
         """获取指定平台的 Cookie（直接从 yaml 文件读取）"""

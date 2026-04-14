@@ -43,7 +43,7 @@ _file_handler = logging.FileHandler(_log_file, encoding="utf-8")
 _file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
 _file_handler.setLevel(logging.DEBUG)
 logging.getLogger().addHandler(_file_handler)
-logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.INFO)
 logger.info(f"日志文件: {_log_file}")
 logger.info(f"Python: {sys.executable}, frozen: {getattr(sys, 'frozen', False)}")
 

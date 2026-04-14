@@ -3,6 +3,7 @@
 from PyQt6.QtWidgets import QGroupBox, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QComboBox
 from PyQt6.QtGui import QClipboard
 from PyQt6.QtCore import QCoreApplication
+import logging
 
 
 class LogPanel(QGroupBox):
@@ -60,6 +61,12 @@ class LogPanel(QGroupBox):
 
     def _on_level_changed(self, level: str):
         self.log_level = level
+        # 同步修改底层 root logger 的级别
+        root_logger = logging.getLogger()
+        if level == self.LEVEL_DEBUG:
+            root_logger.setLevel(logging.DEBUG)
+        else:
+            root_logger.setLevel(logging.INFO)
         self._refresh_display()
 
     def _should_show(self, text: str) -> bool:
